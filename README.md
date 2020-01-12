@@ -29,7 +29,7 @@ $ curl http://127.0.0.1:8080/api/readinessprobe
 
 ```
 # From root directory of repo:
-$ ./cicd/deploy-kickstart-pipeline.sh --application-name <app-name> --source-repo-git-uri <source-repo-uri> --openshift-url <openshift-url> --jenkins-build-namespace <build-namespace>
+$ ./cicd/deploy-kickstart-pipeline.sh --application-name <app-name> --source-repo-git-uri <source-repo-uri> --openshift-url <openshift-url> --jenkins-build-namespace <build-namespace> --image-registry-namespace <image-registry-namespace>
 ```
 
 Start the kickstart pipeline

@@ -19,12 +19,22 @@ objects:
         uri: ${SOURCE_REPO_GIT_URI}
         ref: ${SOURCE_REPO_GIT_BRANCH}
     strategy:
+      type: JenkinsPipeline
       jenkinsPipelineStrategy:
         jenkinsfilePath: ${CICD_RESOURCES_DIRECTORY}/Jenkinsfile-kickstart
         env:
         - name: APPLICATION_NAME
           value: ${APPLICATION_NAME}
-      type: JenkinsPipeline
+        - name: SOURCE_REPO_GIT_URI
+          value: ${SOURCE_REPO_GIT_URI}
+        - name: SOURCE_REPO_GIT_BRANCH
+          value: ${SOURCE_REPO_GIT_BRANCH}
+        - name: CICD_RESOURCES_DIRECTORY
+          value: ${CICD_RESOURCES_DIRECTORY}
+        - name: JENKINS_BUILD_NAMESPACE
+          value: ${JENKINS_BUILD_NAMESPACE}
+        - name: IMAGE_REGISTRY_NAMESPACE
+          value: ${IMAGE_REGISTRY_NAMESPACE}
 parameters:
 - name: APPLICATION_NAME
   displayName: Application Name
@@ -41,4 +51,12 @@ parameters:
 - name: CICD_RESOURCES_DIRECTORY
   displayName: Name of directory where the openshift scripts and yaml files are
   description: Name of directory where the openshift scripts and yaml files are.
+  required: true
+- name: JENKINS_BUILD_NAMESPACE
+  displayName: Namespace that the Jenkins pipeline is to be created in
+  description: Namespace that the Jenkins pipeline is to be created in.
+  required: true
+- name: IMAGE_REGISTRY_NAMESPACE
+  displayName: Namespace to place the built image
+  description: Namespace to place the built image.
   required: true

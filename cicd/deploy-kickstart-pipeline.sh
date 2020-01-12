@@ -8,6 +8,7 @@ function usage
   echo "    --source-repo-git-uri       sourceRepoGitUri        the URI of the source repository"
   echo "    --openshift-url             openshiftUrl            the URL of the OpenShift instance"
   echo "    --jenkins-build-namespace   jenkinsBuildNamespace   the namespace where jenkins builds occur"
+  echo "    --image-registry-namespace  imageRegistryNamespace  the namespace where the built image is to be placed"
   echo "    --dry-run                                           only print out the resources to be applied"
 }
 
@@ -15,6 +16,7 @@ APPLICATION_NAME=
 SOURCE_REPO_GIT_URI=
 OPENSHIFT_URL=
 JENKINS_BUILD_NAMESPACE=
+IMAGE_REGISTRY_NAMESPACE=
 DRY_RUN=FALSE
 
 while [ "$1" != "" ]; do
@@ -30,6 +32,9 @@ while [ "$1" != "" ]; do
                                        ;;
     --jenkins-build-namespace )        shift
                                        JENKINS_BUILD_NAMESPACE=$1
+                                       ;;
+    --image-registry-namespace )       shift
+                                       IMAGE_REGISTRY_NAMESPACE=$1
                                        ;;
     --dry-run )                        DRY_RUN=TRUE
                                        ;;
@@ -61,6 +66,11 @@ if [ -z "$JENKINS_BUILD_NAMESPACE" ]; then
   usage
   exit 1
 fi
+if [ -z "$IMAGE_REGISTRY_NAMESPACE" ]; then
+  echo "ERROR: option --image-registry-namespace was not provided"
+  usage
+  exit 1
+fi
 
 IS_OC_LOGIN_VALID=`oc project | grep 'on server "'${OPENSHIFT_URL}'"' >/dev/null && echo 'TRUE'`
 
@@ -82,9 +92,10 @@ echo SOURCE_REPO_GIT_URI is ${SOURCE_REPO_GIT_URI}
 echo SOURCE_REPO_GIT_BRANCH is ${SOURCE_REPO_GIT_BRANCH}
 echo SCRIPT_DIR is ${SCRIPT_DIR}
 echo JENKINS_BUILD_NAMESPACE is ${JENKINS_BUILD_NAMESPACE}
+echo IMAGE_REGISTRY_NAMESPACE is ${IMAGE_REGISTRY_NAMESPACE}
 
 if [[ "$DRY_RUN" == "TRUE" ]]; then
-  oc process --filename ${SCRIPT_DIR}/kickstart-pipeline-template.yaml --param=APPLICATION_NAME=${APPLICATION_NAME} --param=SOURCE_REPO_GIT_URI=${SOURCE_REPO_GIT_URI} --param=SOURCE_REPO_GIT_BRANCH=${SOURCE_REPO_GIT_BRANCH} --param=CICD_RESOURCES_DIRECTORY=cicd
+  oc process --filename ${SCRIPT_DIR}/kickstart-pipeline-template.yaml --param=APPLICATION_NAME=${APPLICATION_NAME} --param=SOURCE_REPO_GIT_URI=${SOURCE_REPO_GIT_URI} --param=SOURCE_REPO_GIT_BRANCH=${SOURCE_REPO_GIT_BRANCH} --param=CICD_RESOURCES_DIRECTORY=cicd --param=JENKINS_BUILD_NAMESPACE=${JENKINS_BUILD_NAMESPACE} --param=IMAGE_REGISTRY_NAMESPACE=${IMAGE_REGISTRY_NAMESPACE}
 else
-  oc process --filename ${SCRIPT_DIR}/kickstart-pipeline-template.yaml --param=APPLICATION_NAME=${APPLICATION_NAME} --param=SOURCE_REPO_GIT_URI=${SOURCE_REPO_GIT_URI} --param=SOURCE_REPO_GIT_BRANCH=${SOURCE_REPO_GIT_BRANCH} --param=CICD_RESOURCES_DIRECTORY=cicd | oc apply --namespace ${JENKINS_BUILD_NAMESPACE} --filename -
+  oc process --filename ${SCRIPT_DIR}/kickstart-pipeline-template.yaml --param=APPLICATION_NAME=${APPLICATION_NAME} --param=SOURCE_REPO_GIT_URI=${SOURCE_REPO_GIT_URI} --param=SOURCE_REPO_GIT_BRANCH=${SOURCE_REPO_GIT_BRANCH} --param=CICD_RESOURCES_DIRECTORY=cicd --param=JENKINS_BUILD_NAMESPACE=${JENKINS_BUILD_NAMESPACE} --param=IMAGE_REGISTRY_NAMESPACE=${IMAGE_REGISTRY_NAMESPACE} | oc apply --namespace ${JENKINS_BUILD_NAMESPACE} --filename -
 fi
