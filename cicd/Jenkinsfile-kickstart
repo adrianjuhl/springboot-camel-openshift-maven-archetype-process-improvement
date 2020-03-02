@@ -29,14 +29,51 @@ pipeline{
       steps {
         script {
           MAJOR_VERSION = sh (
-                        script: 'echo ${MVN_VERSION} | cut -d . -f 1',
+                        script: 'echo ${MVN_VERSION} | cut --delimiter=. --fields=1',
                         returnStdout: true
                         ).trim()
           sh """
             echo "MVN_ARTIFACT_ID is ${MVN_ARTIFACT_ID}"
             echo "MVN_VERSION is ${MVN_VERSION}"
             echo "MAJOR_VERSION is ${MAJOR_VERSION}"
-            oc process --filename ${CICD_RESOURCES_DIRECTORY}/build-pipeline-template.yaml --param=APPLICATION_NAME=${APPLICATION_NAME} --param=SOURCE_REPO_GIT_URI=${SOURCE_REPO_GIT_URI} --param=SOURCE_REPO_GIT_BRANCH=${SOURCE_REPO_GIT_BRANCH} --param=IMAGE_REGISTRY_NAMESPACE=${IMAGE_REGISTRY_NAMESPACE} --param=CICD_RESOURCES_DIRECTORY=${CICD_RESOURCES_DIRECTORY} | oc apply --namespace ${JENKINS_BUILD_NAMESPACE} --filename -
+            oc process \
+                --filename=${CICD_RESOURCES_DIRECTORY}/build-pipeline-template.yaml \
+                --param=APPLICATION_NAME=${APPLICATION_NAME} \
+                --param=SOURCE_REPO_GIT_URI=${SOURCE_REPO_GIT_URI} \
+                --param=SOURCE_REPO_GIT_BRANCH=${SOURCE_REPO_GIT_BRANCH} \
+                --param=GIT_COMMIT_ID=${GIT_COMMIT_ID}
+                --param=IMAGE_REGISTRY_NAMESPACE=${IMAGE_REGISTRY_NAMESPACE} \
+                --param=CICD_RESOURCES_DIRECTORY=${CICD_RESOURCES_DIRECTORY} \
+              | oc apply \
+                  --namespace=${JENKINS_BUILD_NAMESPACE} \
+                  --filename -
+          """
+        }
+      }
+    }
+
+    stage('Replace DEV deployment pipeline') {
+      steps {
+        script {
+          MAJOR_VERSION = sh (
+                        script: 'echo ${MVN_VERSION} | cut --delimiter=. --fields=1',
+                        returnStdout: true
+                        ).trim()
+          sh """
+            echo "MVN_ARTIFACT_ID is ${MVN_ARTIFACT_ID}"
+            echo "MVN_VERSION is ${MVN_VERSION}"
+            echo "MAJOR_VERSION is ${MAJOR_VERSION}"
+            oc process \
+                --filename=${CICD_RESOURCES_DIRECTORY}/deployment-pipeline-template.yaml \
+                --param=APPLICATION_NAME=${APPLICATION_NAME} \
+                --param=SOURCE_REPO_GIT_URI=${SOURCE_REPO_GIT_URI} \
+                --param=SOURCE_REPO_GIT_BRANCH=${SOURCE_REPO_GIT_BRANCH} \
+                --param=IMAGE_REGISTRY_NAMESPACE=${IMAGE_REGISTRY_NAMESPACE} \
+                --param=CICD_RESOURCES_DIRECTORY=${CICD_RESOURCES_DIRECTORY} \
+                --param=DEPLOYMENT_TARGET_NAMESPACE=${DEPLOYMENT_TARGET_NAMESPACE} \
+              | oc apply \
+                  --namespace=${JENKINS_BUILD_NAMESPACE} \
+                  --filename -
           """
         }
       }
@@ -46,7 +83,7 @@ pipeline{
       steps {
         script {
           sh """
-            oc start-build ${APPLICATION_NAME}-build --env=GIT_COMMIT_ID=${GIT_COMMIT_ID} --env=BUILD_DTTM=${BUILD_DTTM}
+            oc start-build ${APPLICATION_NAME}-build
           """
         }
       }
