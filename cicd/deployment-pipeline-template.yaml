@@ -1,0 +1,185 @@
+apiVersion: v1
+kind: Template
+labels:
+  app: ${APPLICATION_NAME}
+metadata:
+  name: ${APPLICATION_NAME}-deployment-pipeline-template
+  annotations:
+    description: A template for deploying the application deployment pipeline for ${APPLICATION_NAME}.
+  creationTimestamp: null
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: ${APPLICATION_NAME}-deployment-to-${DEPLOYMENT_TARGET_NAMESPACE}-pipeline
+    labels:
+      app: ${APPLICATION_NAME}
+  spec:
+    runPolicy: SerialLatestOnly
+    strategy:
+      type: JenkinsPipeline
+      jenkinsPipelineStrategy:
+        jenkinsfile: |
+          pipeline {
+            agent {
+              label 'maven'
+            }
+            stages {
+
+              stage('Display environment variables') {
+                steps {
+                  script {
+                    openshift.withProject() {
+                      sh """
+                        set
+                        echo "APPLICATION_NAME is ${APPLICATION_NAME}"
+                        echo "SOURCE_REPO_GIT_URI is ${SOURCE_REPO_GIT_URI}"
+                        echo "SOURCE_REPO_GIT_BRANCH is ${SOURCE_REPO_GIT_BRANCH}"
+                        echo "IMAGE_REGISTRY_NAMESPACE is ${IMAGE_REGISTRY_NAMESPACE}"
+                        echo "CICD_RESOURCES_DIRECTORY is ${CICD_RESOURCES_DIRECTORY}"
+                        echo "DEPLOYMENT_TARGET_NAMESPACE is ${DEPLOYMENT_TARGET_NAMESPACE}"
+                      """
+                    }
+                  }
+                }
+              }
+
+              stage('Checkout source repo') {
+                options { retry(3) }
+                steps {
+                  script {
+                    openshift.withProject() {
+                      dir("$WORKSPACE/application-repo") {
+                        git url: "${SOURCE_REPO_GIT_URI}",
+                            branch: "${SOURCE_REPO_GIT_BRANCH}"
+                        MVN_ARTIFACT_ID = readMavenPom().getArtifactId()
+                        MVN_VERSION = readMavenPom().getVersion()
+                        echo "MVN_ARTIFACT_ID is ${MVN_ARTIFACT_ID}"
+                        echo "MVN_VERSION is ${MVN_VERSION}"
+                      }
+                    }
+                  }
+                }
+              }
+
+              stage('Create application-deployment DeploymentConfig ${APPLICATION_NAME} in namespace ${DEPLOYMENT_TARGET_NAMESPACE}') {
+                steps {
+                  dir("$WORKSPACE/application-repo") {
+                    sh """
+                      oc process \
+                          --filename=${OPENSHIFT_RESOURCES_DIRECTORY}/deployment-deployconfig-template.yaml \
+                          --param=APPLICATION_NAME=${APPLICATION_NAME} \
+                          --param=IMAGE_REGISTRY_NAMESPACE=${IMAGE_REGISTRY_NAMESPACE} \
+                          --param=APPLICATION_VERSION=${MVN_VERSION}_${BUILD_DTTM} \
+                          --param=GIT_COMMIT_ID=${GIT_COMMIT_ID} \
+                          --param=APPLICATION_IMAGE_SHA256=${DEPLOYMENT_IMAGE_SHA256} \
+                          --param=SPRING_APPLICATION_JSON="`cat config/dev.json`" \
+                        | oc apply \
+                            --namespace=${DEPLOYMENT_TARGET_NAMESPACE} \
+                            --filename -
+                    """
+                  }
+                }
+              }
+
+              stage('Create application-deployment Service ${APPLICATION_NAME} in namespace ${DEPLOYMENT_TARGET_NAMESPACE}') {
+                steps {
+                  dir("$WORKSPACE/application-repo") {
+                    sh """
+                      oc process \
+                          --filename=${OPENSHIFT_RESOURCES_DIRECTORY}/deployment-service-template.yaml \
+                          --param=APPLICATION_NAME=${APPLICATION_NAME} \
+                        | oc apply \
+                            --namespace=${DEPLOYMENT_TARGET_NAMESPACE} \
+                            --filename -
+                    """
+                  }
+                }
+              }
+
+              stage('Create application-deployment Route ${APPLICATION_NAME} in namespace ${DEPLOYMENT_TARGET_NAMESPACE}') {
+                steps {
+                  dir("$WORKSPACE/application-repo") {
+                    sh """
+                      oc process \
+                          --filename=${OPENSHIFT_RESOURCES_DIRECTORY}/deployment-route-template.yaml \
+                          --param=APPLICATION_NAME=${APPLICATION_NAME} \
+                        | oc apply \
+                            --namespace=${DEPLOYMENT_TARGET_NAMESPACE} \
+                            --filename -
+                    """
+                  }
+                }
+              }
+
+              stage('Rollout to ${DEPLOYMENT_TARGET_NAMESPACE} and wait for rollout...') {
+                steps {
+                  script {
+                    openshift.withCluster() {
+                      openshift.withProject("${DEPLOYMENT_TARGET_NAMESPACE}") {
+                        def result = null
+                        deploymentConfig = openshift.selector("deploymentconfig", "${APPLICATION_NAME}")
+                        deploymentConfig.rollout().latest()
+                        timeout(10) {
+                          result = deploymentConfig.rollout().status("-w")
+                        }
+                        if (result.status != 0) {
+                          error(result.err)
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+
+              stage('Test in ${DEPLOYMENT_TARGET_NAMESPACE}') {
+                steps {
+                  dir("$WORKSPACE/application-repo") {
+                    sh """
+                      ./${OPENSHIFT_RESOURCES_DIRECTORY}/test-scripts/dev.sh \
+                          --applicationName ${APPLICATION_NAME} \
+                          --namespace ${DEPLOYMENT_TARGET_NAMESPACE} \
+                          --cluster dev
+                    """
+                  }
+                }
+              }
+
+              stage('Pipeline completed!') {
+                steps{
+                  script {
+                    echo "*********************************************************************"
+                    echo "Pipeline completed!"
+                    echo "*********************************************************************"
+                  }
+                }
+              }
+
+            }
+          }
+    triggers: []
+parameters:
+- name: APPLICATION_NAME
+  displayName: Application Name
+  description: The name of the application (i.e. Openshift Application name).
+  required: true
+- name: SOURCE_REPO_GIT_URI
+  displayName: URI of the source repository
+  description: URI of the source repository.
+  required: true
+- name: SOURCE_REPO_GIT_BRANCH
+  displayName: Branch of the source repository
+  description: Branch of the source repository.
+  required: true
+- name: IMAGE_REGISTRY_NAMESPACE
+  displayName: Namespace that the application image is to placed in
+  description: Namespace that the application image is to placed in.
+  required: true
+- name: CICD_RESOURCES_DIRECTORY
+  displayName: Name of directory where the openshift scripts and yaml files are
+  description: Name of directory where the openshift scripts and yaml files are.
+  required: true
+- name: DEPLOYMENT_TARGET_NAMESPACE
+  displayName: Namespace that the application is to be deployed to
+  description: Namespace that the application is to be deployed to.
+  required: true
