@@ -67,7 +67,7 @@ objects:
                   dir("$WORKSPACE/application-repo") {
                     sh """
                       oc process \
-                          --filename=${OPENSHIFT_RESOURCES_DIRECTORY}/deployment-deployconfig-template.yaml \
+                          --filename=${CICD_RESOURCES_DIRECTORY}/deployment-deployconfig-template.yaml \
                           --param=APPLICATION_NAME=${APPLICATION_NAME} \
                           --param=IMAGE_REGISTRY_NAMESPACE=${IMAGE_REGISTRY_NAMESPACE} \
                           --param=APPLICATION_VERSION=${MVN_VERSION}_${BUILD_DTTM} \
@@ -87,7 +87,7 @@ objects:
                   dir("$WORKSPACE/application-repo") {
                     sh """
                       oc process \
-                          --filename=${OPENSHIFT_RESOURCES_DIRECTORY}/deployment-service-template.yaml \
+                          --filename=${CICD_RESOURCES_DIRECTORY}/deployment-service-template.yaml \
                           --param=APPLICATION_NAME=${APPLICATION_NAME} \
                         | oc apply \
                             --namespace=${DEPLOYMENT_TARGET_NAMESPACE} \
@@ -102,7 +102,7 @@ objects:
                   dir("$WORKSPACE/application-repo") {
                     sh """
                       oc process \
-                          --filename=${OPENSHIFT_RESOURCES_DIRECTORY}/deployment-route-template.yaml \
+                          --filename=${CICD_RESOURCES_DIRECTORY}/deployment-route-template.yaml \
                           --param=APPLICATION_NAME=${APPLICATION_NAME} \
                         | oc apply \
                             --namespace=${DEPLOYMENT_TARGET_NAMESPACE} \
@@ -136,7 +136,7 @@ objects:
                 steps {
                   dir("$WORKSPACE/application-repo") {
                     sh """
-                      ./${OPENSHIFT_RESOURCES_DIRECTORY}/test-scripts/dev.sh \
+                      ./${CICD_RESOURCES_DIRECTORY}/test-scripts/dev.sh \
                           --applicationName ${APPLICATION_NAME} \
                           --namespace ${DEPLOYMENT_TARGET_NAMESPACE} \
                           --cluster dev
