@@ -173,3 +173,7 @@ parameters:
   displayName: Name of directory where the openshift scripts and yaml files are
   description: Name of directory where the openshift scripts and yaml files are.
   required: true
+- name: DEPLOYMENT_TARGET_NAMESPACE
+  displayName: Namespace that the application is to be deployed to
+  description: Namespace that the application is to be deployed to.
+  required: true
