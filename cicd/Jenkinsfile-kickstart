@@ -41,7 +41,7 @@ pipeline{
                 --param=APPLICATION_NAME=${APPLICATION_NAME} \
                 --param=SOURCE_REPO_GIT_URI=${SOURCE_REPO_GIT_URI} \
                 --param=SOURCE_REPO_GIT_BRANCH=${SOURCE_REPO_GIT_BRANCH} \
-                --param=GIT_COMMIT_ID=${GIT_COMMIT_ID}
+                --param=GIT_COMMIT_ID=${GIT_COMMIT_ID} \
                 --param=IMAGE_REGISTRY_NAMESPACE=${IMAGE_REGISTRY_NAMESPACE} \
                 --param=CICD_RESOURCES_DIRECTORY=${CICD_RESOURCES_DIRECTORY} \
               | oc apply \
