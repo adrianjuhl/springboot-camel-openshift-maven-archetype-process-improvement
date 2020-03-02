@@ -22,6 +22,9 @@ objects:
             agent {
               label 'maven'
             }
+            environment{
+              BUILD_DTTM = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()
+            }
             stages {
 
               stage('Display environment variables') {
@@ -42,6 +45,7 @@ objects:
               }
 
               stage('Checkout source repo') {
+                options { retry(3) }
                 steps {
                   script {
                     openshift.withProject() {
@@ -72,7 +76,12 @@ objects:
                 steps {
                   dir("$WORKSPACE/application-repo") {
                     sh """
-                      oc process --filename ${CICD_RESOURCES_DIRECTORY}/build-imagestream-template.yaml --param=APPLICATION_NAME=${APPLICATION_NAME} | oc apply --namespace ${IMAGE_REGISTRY_NAMESPACE} --filename -
+                      oc process \
+                          --filename=${CICD_RESOURCES_DIRECTORY}/build-imagestream-template.yaml \
+                          --param=APPLICATION_NAME=${APPLICATION_NAME} \
+                        | oc apply \
+                            --namespace=${IMAGE_REGISTRY_NAMESPACE} \
+                            --filename -
                     """
                   }
                 }
@@ -82,7 +91,15 @@ objects:
                 steps {
                   dir("$WORKSPACE/application-repo") {
                     sh """
-                      oc process --filename ${CICD_RESOURCES_DIRECTORY}/build-buildconfig-template.yaml --param=APPLICATION_NAME=${APPLICATION_NAME} --param=GIT_COMMIT_ID=${GIT_COMMIT_ID} --param=MVN_VERSION=${MVN_VERSION} --param=BUILD_DTTM=${BUILD_DTTM} | oc apply --namespace ${IMAGE_REGISTRY_NAMESPACE} --filename -
+                      oc process \
+                          --filename=${CICD_RESOURCES_DIRECTORY}/build-buildconfig-template.yaml \
+                          --param=APPLICATION_NAME=${APPLICATION_NAME} \
+                          --param=GIT_COMMIT_ID=${GIT_COMMIT_ID} \
+                          --param=MVN_VERSION=${MVN_VERSION} \
+                          --param=BUILD_DTTM=${BUILD_DTTM} \
+                        | oc apply \
+                            --namespace=${IMAGE_REGISTRY_NAMESPACE} \
+                            --filename -
                     """
                   }
                 }
@@ -91,18 +108,29 @@ objects:
               stage('Build image') {
                 steps {
                   sh """
-                    oc start-build ${APPLICATION_NAME} --namespace ${IMAGE_REGISTRY_NAMESPACE} --from-file=application-repo/target/${MVN_ARTIFACT_ID}-${MVN_VERSION}.jar --follow
+                    oc start-build ${APPLICATION_NAME} \
+                        --namespace=${IMAGE_REGISTRY_NAMESPACE} \
+                        --from-file=application-repo/target/${MVN_ARTIFACT_ID}-${MVN_VERSION}.jar \
+                        --follow
                   """
                 }
               }
 
-              stage('Tag image with VERSION_...') {
+              stage('Trigger deployment to DEV pipeline') {
                 steps {
                   script {
                     openshift.withCluster() {
-                      openshift.withProject("${IMAGE_REGISTRY_NAMESPACE}") {
-                        echo "Tag image with VERSION_${MVN_VERSION}_${BUILD_DTTM}"
-                        openshift.tag("${APPLICATION_NAME}:latest", "${APPLICATION_NAME}:VERSION_${MVN_VERSION}_${BUILD_DTTM}")
+                      openshift.withProject() {
+                        echo "*********************************************************************"
+                        echo "Trigger deployment pipeline for version VERSION_${MVN_VERSION}_${BUILD_DTTM}"
+                        echo "*********************************************************************"
+                        sh """
+                          LATEST_BUILD_IMAGE_SHA256=\$(oc get istag ${APPLICATION_NAME}:latest --namespace ${IMAGE_REGISTRY_NAMESPACE} -o template --template='{{ .image.metadata.name }}')
+                          oc start-build ${APPLICATION_NAME}-deployment-to-${DEPLOYMENT_TARGET_NAMESPACE}-pipeline \
+                              --env=DEPLOYMENT_IMAGE_SHA256=\${LATEST_BUILD_IMAGE_SHA256} \
+                              --env=GIT_COMMIT_ID=${GIT_COMMIT_ID} \
+                              --env=BUILD_DTTM=${BUILD_DTTM}
+                        """
                       }
                     }
                   }
@@ -132,6 +160,10 @@ parameters:
 - name: SOURCE_REPO_GIT_BRANCH
   displayName: Branch of the source repository
   description: Branch of the source repository.
+  required: true
+- name: GIT_COMMIT_ID
+  displayName: The git commit ID
+  description: The git commit ID.
   required: true
 - name: IMAGE_REGISTRY_NAMESPACE
   displayName: Namespace that the application image is to placed in
