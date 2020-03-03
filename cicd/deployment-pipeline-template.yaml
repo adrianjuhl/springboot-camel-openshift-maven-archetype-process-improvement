@@ -152,9 +152,9 @@ objects:
                   dir("$WORKSPACE/application-repo") {
                     sh """
                       ./${CICD_RESOURCES_DIRECTORY}/test-scripts/dev.sh \
-                          --applicationName ${APPLICATION_NAME} \
+                          --application-name ${APPLICATION_NAME} \
                           --namespace ${DEPLOYMENT_TARGET_NAMESPACE} \
-                          --ocpHostnameBase ${OCP_HOSTNAME_BASE}
+                          --ocp-hostname-base ${OCP_HOSTNAME_BASE}
                     """
                   }
                 }
