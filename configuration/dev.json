@@ -1,0 +1,12 @@
+{
+  "camel.context.shutdown.timeout":10
+  ,"camel.springboot.stream-caching-enabled":"true"
+  ,"camel.springboot.stream-caching-spool-threshold":"-1"
+  ,"cxf.path":"/api"
+  ,"logging.level.au.edu.adelaide.integration":"DEBUG"
+  ,"logging.level.org.apache.cxf.phase.PhaseInterceptorChain":"ERROR"
+  ,"logging.path":"/tmp"
+  ,"logging.pattern.console":"{ \"timestamp\":\"%d{yyyy-MM-dd HH:mm:ss.SSS}\", \"applicationName\":\"${spring.application.name}\", \"level\":\"%p\", \"loggerName\":\"%logger\", \"message\":\"%m\", \"exception\":\"%wEx\" }%n"
+  ,"logging.pattern.file":"%d{yyyy-MM-dd HH:mm:ss.SSS} %5p ${PID:- } --- [%t] %logger : %m%n%wEx"
+}
+
