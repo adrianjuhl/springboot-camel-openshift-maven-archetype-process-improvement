@@ -37,6 +37,8 @@ objects:
           value: ${IMAGE_REGISTRY_NAMESPACE}
         - name: DEPLOYMENT_TARGET_NAMESPACE
           value: ${DEPLOYMENT_TARGET_NAMESPACE}
+        - name: OCP_HOSTNAME_BASE
+          value: ${OCP_HOSTNAME_BASE}
 parameters:
 - name: APPLICATION_NAME
   displayName: Application Name
@@ -65,4 +67,8 @@ parameters:
 - name: DEPLOYMENT_TARGET_NAMESPACE
   displayName: Namespace that the application is to be deployed to
   description: Namespace that the application is to be deployed to.
+  required: true
+- name: OCP_HOSTNAME_BASE
+  displayName: Base/suffix of the OCP hostname
+  description: Base/suffix of the OCP hostname.
   required: true

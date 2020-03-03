@@ -72,6 +72,7 @@ pipeline{
                 --param=IMAGE_REGISTRY_NAMESPACE=${IMAGE_REGISTRY_NAMESPACE} \
                 --param=CICD_RESOURCES_DIRECTORY=${CICD_RESOURCES_DIRECTORY} \
                 --param=DEPLOYMENT_TARGET_NAMESPACE=${DEPLOYMENT_TARGET_NAMESPACE} \
+                --param=OCP_HOSTNAME_BASE=${OCP_HOSTNAME_BASE} \
               | oc apply \
                   --namespace=${JENKINS_BUILD_NAMESPACE} \
                   --filename -

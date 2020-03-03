@@ -10,6 +10,7 @@ function usage
   echo "    --jenkins-build-namespace        jenkinsBuildNamespace        the namespace where jenkins builds occur"
   echo "    --image-registry-namespace       imageRegistryNamespace       the namespace where the built image is to be placed"
   echo "    --deployment-target-namespace    deploymentTargetNamespace    the namespace where the app will be deployed to"
+  echo "    --ocp-hostname-base              ocpHostnameBase              the base/suffix of the OCP hostname"
   echo "    --dry-run                                                     only print out the resources to be applied"
 }
 
@@ -19,6 +20,7 @@ OPENSHIFT_URL=
 JENKINS_BUILD_NAMESPACE=
 IMAGE_REGISTRY_NAMESPACE=
 DEPLOYMENT_TARGET_NAMESPACE=
+OCP_HOSTNAME_BASE=
 DRY_RUN=FALSE
 
 while [ "$1" != "" ]; do
@@ -40,6 +42,9 @@ while [ "$1" != "" ]; do
                                        ;;
     --deployment-target-namespace )    shift
                                        DEPLOYMENT_TARGET_NAMESPACE=$1
+                                       ;;
+    --ocp-hostname-base )              shift
+                                       OCP_HOSTNAME_BASE=$1
                                        ;;
     --dry-run )                        DRY_RUN=TRUE
                                        ;;
@@ -81,6 +86,11 @@ if [ -z "$DEPLOYMENT_TARGET_NAMESPACE" ]; then
   usage
   exit 1
 fi
+if [ -z "${OCP_HOSTNAME_BASE}" ]; then
+  echo "ERROR: option --ocp-hostname-base was not provided"
+  usage
+  exit 1
+fi
 
 IS_OC_LOGIN_VALID=`oc project | grep 'on server "'${OPENSHIFT_URL}'"' >/dev/null && echo 'TRUE'`
 
@@ -104,6 +114,7 @@ echo SCRIPT_DIR is ${SCRIPT_DIR}
 echo JENKINS_BUILD_NAMESPACE is ${JENKINS_BUILD_NAMESPACE}
 echo IMAGE_REGISTRY_NAMESPACE is ${IMAGE_REGISTRY_NAMESPACE}
 echo DEPLOYMENT_TARGET_NAMESPACE is ${DEPLOYMENT_TARGET_NAMESPACE}
+echo OCP_HOSTNAME_BASE is ${OCP_HOSTNAME_BASE}
 
 if [[ "$DRY_RUN" == "TRUE" ]]; then
   oc process \
@@ -114,7 +125,8 @@ if [[ "$DRY_RUN" == "TRUE" ]]; then
       --param=CICD_RESOURCES_DIRECTORY=cicd \
       --param=JENKINS_BUILD_NAMESPACE=${JENKINS_BUILD_NAMESPACE} \
       --param=IMAGE_REGISTRY_NAMESPACE=${IMAGE_REGISTRY_NAMESPACE} \
-      --param=DEPLOYMENT_TARGET_NAMESPACE=${DEPLOYMENT_TARGET_NAMESPACE}
+      --param=DEPLOYMENT_TARGET_NAMESPACE=${DEPLOYMENT_TARGET_NAMESPACE} \
+      --param=OCP_HOSTNAME_BASE=${OCP_HOSTNAME_BASE}
 else
   oc process \
       --filename ${SCRIPT_DIR}/kickstart-pipeline-template.yaml \
@@ -125,6 +137,7 @@ else
       --param=JENKINS_BUILD_NAMESPACE=${JENKINS_BUILD_NAMESPACE} \
       --param=IMAGE_REGISTRY_NAMESPACE=${IMAGE_REGISTRY_NAMESPACE} \
       --param=DEPLOYMENT_TARGET_NAMESPACE=${DEPLOYMENT_TARGET_NAMESPACE} \
+      --param=OCP_HOSTNAME_BASE=${OCP_HOSTNAME_BASE} \
     | oc apply \
       --namespace=${JENKINS_BUILD_NAMESPACE} \
       --filename -
