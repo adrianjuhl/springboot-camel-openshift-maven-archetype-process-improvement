@@ -62,10 +62,25 @@ objects:
                 }
               }
 
+              stage('Checkout config') {
+                options { retry(3) }
+                steps {
+                  script {
+                    openshift.withProject() {
+                      dir("$WORKSPACE/application-configuration") {
+                        git url: "${SOURCE_REPO_GIT_URI}",
+                            branch: "configuration"
+                      }
+                    }
+                  }
+                }
+              }
+
               stage('Create application-deployment DeploymentConfig ${APPLICATION_NAME} in namespace ${DEPLOYMENT_TARGET_NAMESPACE}') {
                 steps {
                   dir("$WORKSPACE/application-repo") {
                     sh """
+                      cat ../application-configuration/configuration/dev.json
                       oc process \
                           --filename=${CICD_RESOURCES_DIRECTORY}/deployment-deployconfig-template.yaml \
                           --param=APPLICATION_NAME=${APPLICATION_NAME} \
@@ -73,7 +88,7 @@ objects:
                           --param=APPLICATION_VERSION=${MVN_VERSION}_${BUILD_DTTM} \
                           --param=GIT_COMMIT_ID=${GIT_COMMIT_ID} \
                           --param=APPLICATION_IMAGE_SHA256=${DEPLOYMENT_IMAGE_SHA256} \
-                          --param=SPRING_APPLICATION_JSON="`git show configuration:configuration/dev.json`" \
+                          --param=SPRING_APPLICATION_JSON="`cat ../application-configuration/configuration/dev.json`" \
                         | oc apply \
                             --namespace=${DEPLOYMENT_TARGET_NAMESPACE} \
                             --filename -
