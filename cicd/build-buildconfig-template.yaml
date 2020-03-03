@@ -26,8 +26,10 @@ objects:
         value: ${APPLICATION_NAME}
       - name: app.git.commit.id
         value: ${GIT_COMMIT_ID}
-      - name: app.version.and.datetime
-        value: VERSION_${MVN_VERSION}_${BUILD_DTTM}
+      - name: app.mvn.version
+        value: ${MVN_VERSION}
+      - name: app.build.datetime
+        value: ${BUILD_DTTM}
     resources:
       limits:
         cpu: '${CPU_LIMIT}'
