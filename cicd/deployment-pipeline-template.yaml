@@ -73,7 +73,7 @@ objects:
                           --param=APPLICATION_VERSION=${MVN_VERSION}_${BUILD_DTTM} \
                           --param=GIT_COMMIT_ID=${GIT_COMMIT_ID} \
                           --param=APPLICATION_IMAGE_SHA256=${DEPLOYMENT_IMAGE_SHA256} \
-                          --param=SPRING_APPLICATION_JSON="`cat config/dev.json`" \
+                          --param=SPRING_APPLICATION_JSON="`git show configuration:configuration/dev.json`" \
                         | oc apply \
                             --namespace=${DEPLOYMENT_TARGET_NAMESPACE} \
                             --filename -
