@@ -154,7 +154,7 @@ objects:
                       ./${CICD_RESOURCES_DIRECTORY}/test-scripts/dev.sh \
                           --applicationName ${APPLICATION_NAME} \
                           --namespace ${DEPLOYMENT_TARGET_NAMESPACE} \
-                          --cluster dev
+                          --ocpHostnameBase ${OCP_HOSTNAME_BASE}
                     """
                   }
                 }
@@ -197,4 +197,8 @@ parameters:
 - name: DEPLOYMENT_TARGET_NAMESPACE
   displayName: Namespace that the application is to be deployed to
   description: Namespace that the application is to be deployed to.
+  required: true
+- name: OCP_HOSTNAME_BASE
+  displayName: Base/suffix of the OCP hostname
+  description: Base/suffix of the OCP hostname.
   required: true
