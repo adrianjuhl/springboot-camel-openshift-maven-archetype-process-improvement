@@ -35,6 +35,8 @@ objects:
           value: ${JENKINS_BUILD_NAMESPACE}
         - name: IMAGE_REGISTRY_NAMESPACE
           value: ${IMAGE_REGISTRY_NAMESPACE}
+        - name: DEPLOYMENT_TARGET_NAMESPACE
+          value: ${DEPLOYMENT_TARGET_NAMESPACE}
 parameters:
 - name: APPLICATION_NAME
   displayName: Application Name
@@ -59,4 +61,8 @@ parameters:
 - name: IMAGE_REGISTRY_NAMESPACE
   displayName: Namespace to place the built image
   description: Namespace to place the built image.
+  required: true
+- name: DEPLOYMENT_TARGET_NAMESPACE
+  displayName: Namespace that the application is to be deployed to
+  description: Namespace that the application is to be deployed to.
   required: true
